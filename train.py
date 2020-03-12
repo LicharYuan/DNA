@@ -13,7 +13,7 @@ except ImportError:
     from torch.nn.parallel import DistributedDataParallel as DDP
     has_apex = False
 
-from timm.data import Dataset, create_loader, resolve_data_config, FastCollateMixup, mixup_target
+from timm.data import Dataset, create_loader, resolve_data_config, FastCollateMixup
 from timm.models import create_model, resume_checkpoint
 
 from model import * 
@@ -138,6 +138,9 @@ parser.add_argument('--eval-metric', default='prec1', type=str, metavar='EVAL_ME
                     help='Best metric (default: "prec1"')
 parser.add_argument('--tta', type=int, default=0, metavar='N',
                     help='Test/inference time augmentation (oversampling) factor. 0=None (default: 0)')
+
+parser.add_argument('--atp', action='store_true', help='whether train on atp')
+
 parser.add_argument("--local_rank", default=0, type=int)
 
 
@@ -146,6 +149,19 @@ def main():
     args = parser.parse_args()
     args.prefetcher = not args.no_prefetcher
     args.distributed = False
+
+    if args.atp is True:
+        from rsync_data import polyaxon_output, rsync_imagenet, get_datapath
+        atp_out = polyaxon_output() 
+        args.output = os.path.join(atp_out, args.output)
+        if args.local_rank == 0:
+            if not os.path.exists(args.output):
+                os.makedirs(args.output)
+            rsync_imagenet()
+        # fh = logging.FileHandler(os.path.join(args.output,'train.log'))
+        # fh.setLevel(logging.INFO)
+        args.data = get_datapath() # only support ImageNet 
+
     if 'WORLD_SIZE' in os.environ:
         args.distributed = int(os.environ['WORLD_SIZE']) > 1
         if args.distributed and args.num_gpu > 1:
@@ -261,6 +277,8 @@ def main():
     if not os.path.exists(train_dir):
         logging.error('Training folder does not exist at: {}'.format(train_dir))
         exit(1)
+    
+    #Dataset = torchvision.datasets.ImageFolder
     dataset_train = Dataset(train_dir)
 
     collate_fn = None
@@ -391,12 +409,12 @@ def train_epoch(
         if not args.prefetcher:
             input = input.cuda()
             target = target.cuda()
-            if args.mixup > 0.:
-                lam = 1.
-                if not args.mixup_off_epoch or epoch < args.mixup_off_epoch:
-                    lam = np.random.beta(args.mixup, args.mixup)
-                input.mul_(lam).add_(1 - lam, input.flip(0))
-                target = mixup_target(target, args.num_classes, lam, args.smoothing)
+            #if args.mixup > 0.:
+            #    lam = 1.
+            #    if not args.mixup_off_epoch or epoch < args.mixup_off_epoch:
+            #        lam = np.random.beta(args.mixup, args.mixup)
+            #    input.mul_(lam).add_(1 - lam, input.flip(0))
+            #    target = mixup_target(target, args.num_classes, lam, args.smoothing)
 
         output = model(input)
 
