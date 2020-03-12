@@ -17,7 +17,7 @@ This repository provides the evaluation code of our paper: [***Blockwisely Super
 ### 1. Requirements
 - Install PyTorch ([pytorch.org](http://pytorch.org))
 - Install third-party requirements
-	- `pip install timm` We use this [Pytorch-Image-Models](https://github.com/rwightman/pytorch-image-models/) codebase to validate our models. 
+	- `pip install timm==0.1.14` We use this [Pytorch-Image-Models](https://github.com/rwightman/pytorch-image-models/) codebase to validate our models. 
 - Download the ImageNet dataset and move validation images to labeled subfolders
     - To do this, you can use the following script: [https://raw.githubusercontent.com/soumith/imagenetloader.torch/master/valprep.shvalprep.sh](https://raw.githubusercontent.com/soumith/imagenetloader.torch/master/valprep.sh)
 	- Only the validation set is needed in the evaluation process.
